@@ -1,0 +1,14 @@
+name: Slack to Jira Integration
+
+on:
+  repository_dispatch:
+    types:
+      - org-pulsar
+      
+jobs:
+  check:
+    name: Run check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Say hello
+        run: echo Hello
