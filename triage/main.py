@@ -35,9 +35,23 @@ def event_test(body, say, logger):
       channel=body["event"]["channel"],
       ts=body["event"]["thread_ts"]
     )["messages"][0]["user"]
+    
+    description = app.client.conversations_replies(
+      channel=body["event"]["channel"],
+      ts=body["event"]["thread_ts"]
+    )["messages"][0]["text"]
+    
+    # TODO: Check what other info we can grab from the message
+    parent_message_meta = app.client.conversations_replies(
+      channel=body["event"]["channel"],
+      ts=body["event"]["thread_ts"]
+    )["messages"][0]
+    
+    # Just print the testing message
+    say(f"Here is the message: {parent_message_meta}", thread_ts=body["event"]["ts"])
 
     # Say something like "Creating your ticket assignment to <assignee>!"
-    say(f"Creating your ticket <@{assignee}> for reporter <@{reporter}>!", thread_ts=body["event"]["ts"])
+    say(f"Creating your ticket <@{assignee}> for reporter <@{reporter}> with description {description}!", thread_ts=body["event"]["ts"])
   else:
     say("Sadly, I can only create tickets in a thread. Please send me a DM in a thread.")
 
