@@ -2,25 +2,36 @@ import os
 import logging
 from slack_bolt import App
 
+# Flask adapter
+from slack_bolt.adapter.google_cloud_functions import SlackRequestHandler
+from flask import Request
+
 logging.basicConfig(level=logging.DEBUG)
 
 # process_before_response must be True when running on FaaS
 app = App(process_before_response=True)
 
-# This appears to be a slash command
+handler = SlackRequestHandler(app)
+
+# This is the slash command. We are not really using it, but it will notify them on how to use the bot.
 @app.command("/triage")
 def hello_command(ack, logger):
   logger.info("I see a slash command!")
   ack("Hi from The Jira and Slack Integration bot! When you are ready, just send me a DM in a thread and I will help you create a Jira ticket.")
 
-# Flask adapter
-from slack_bolt.adapter.google_cloud_functions import SlackRequestHandler
-from flask import Request
+# This is the event we want to use to create a ticket
+@app.event("reaction_added")
+def handle_reaction_added(body, say, logger):
+  logger.info("I see a reaction_added event!")
+  logger.info(body)
 
+  # Find who called the bot
+  assignee = body["event"]["user"]
 
-handler = SlackRequestHandler(app)
+  # Say something like "Creating your ticket assignment to <assignee>!"
+  say(f"Hey there <@{assignee}>! I see you added a reaction. I will create a ticket for you!", thread_ts=body["event"]["item"]["ts"])
 
-# This appears to be the mention event
+# This is the current event we are using to create a ticket
 @app.event("app_mention")
 def event_test(body, say, logger):
   logger.info("I see a mention!")
