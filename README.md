@@ -18,3 +18,9 @@ Example:
 
 ## Testing the URL
 ```curl https://us-east1-bobolopocus.cloudfunctions.net/triage```
+
+## Secrets
+The following Secrets must be created at https://console.cloud.google.com/security/secret-manager
+- JIRA_AUTH : Authentication token used for authenticating with Jira. Found https://support.atlassian.com/atlassian-account/docs/manage-api-tokens-for-your-atlassian-account/
+- SLACK_BOT_TOKEN : Token used for the slack bot found at https://api.slack.com/
+- SLACK_SIGNING_SECRET : Signing secret found at https://api.slack.com/
