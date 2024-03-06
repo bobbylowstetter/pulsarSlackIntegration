@@ -2,6 +2,10 @@ import os
 import logging
 from slack_bolt import App
 
+# Jira API stuff
+import http.client
+import json
+
 # Flask adapter
 from slack_bolt.adapter.google_cloud_functions import SlackRequestHandler
 from flask import Request
@@ -45,8 +49,8 @@ def handle_reaction_added(body, say, logger):
   
   # Create a ticket if the reaction is :eyes:
   if reaction == "eyes":
-    jira_authorization=os.environ.get("JIRA_AUTH")
     say(f"Hey there <@{assignee}>! I will create a ticket for <@{reporter}> with a description of {description}!", thread_ts=body["event"]["item"]["ts"])
+    create_ticket()
 
   # Complete the ticket if the reaction is :white_check_mark:
   elif reaction =="white_check_mark":
@@ -64,6 +68,48 @@ def triage(req: Request):
     signing_secret=os.environ.get("SLACK_SIGNING_SECRET")
   )
   return handler.handle(req)
+
+# Some functions for Working with Jira
+def create_ticket():
+  jira_authorization=os.environ.get("JIRA_AUTH")
+  conn = http.client.HTTPSConnection("banno-jha.atlassian.net")
+  payload = json.dumps({
+    "fields": {
+      "project": {
+        "key": "PULS"
+      },
+      "summary": "REST Test",
+      "description": {
+        "type": "doc",
+        "version": 1,
+        "content": [
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "this is a description of the issue"
+              }
+            ]
+          }
+        ]
+      },
+      "issuetype": {
+        "name": "Task"
+      },
+      "assignee": {
+        "accountId": "62fbac730bb03d8a6cb28321"
+      }
+    }
+  })
+  headers = {
+    'Content-Type': 'application/json',
+    'Authorization': 'Basic ' + jira_authorization
+  }
+  conn.request("POST", "/rest/api/3/issue", payload, headers)
+  res = conn.getresponse()
+  data = res.read()
+  print(data.decode("utf-8"))
 
 # Step1: Create a new Slack App: https://api.slack.com/apps
 # Bot Token Scopes: app_mentions:read,chat:write,commands

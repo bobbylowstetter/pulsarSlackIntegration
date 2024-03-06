@@ -8,7 +8,7 @@ https://us-east1-bobolopocus.cloudfunctions.net/triage
 Use `gcloud init` to login to GCP. For this current setup, we are using the `bobolopocus` project.
 
 ## Deploying
-Each function has its own deploy
+Each function has its own deploy. First navigate to the `triage` folder. Then run the following command to deploy changes:
 ```gcloud functions deploy triage --runtime python310 --trigger-http --allow-unauthenticated --entry-point=triage --gen2 --region us-east1 --set-secrets "JIRA_AUTH=JIRA_AUTH:latest","SLACK_BOT_TOKEN=SLACK_BOT_TOKEN:latest","SLACK_SIGNING_SECRET=SLACK_SIGNING_SECRET:latest"```
 
 ## Deleting
