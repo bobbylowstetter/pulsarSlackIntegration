@@ -9,7 +9,7 @@ Use `gcloud init` to login to GCP. For this current setup, we are using the `bob
 
 ## Deploying
 Each function has its own deploy
-```gcloud functions deploy triage --runtime python310 --trigger-http --allow-unauthenticated --entry-point=triage --gen2 --region us-east1 --env-vars-file .env.yaml```
+```gcloud functions deploy triage --runtime python310 --trigger-http --allow-unauthenticated --entry-point=triage --gen2 --region us-east1 --set-secrets "JIRA_AUTH=JIRA_AUTH:latest","SLACK_BOT_TOKEN=SLACK_BOT_TOKEN:latest","SLACK_SIGNING_SECRET=SLACK_SIGNING_SECRET:latest"```
 
 ## Deleting
 ```gcloud functions delete --region us-east1 {{def}}```

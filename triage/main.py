@@ -17,7 +17,7 @@ handler = SlackRequestHandler(app)
 @app.command("/triage")
 def hello_command(ack, logger):
   logger.info("I see a slash command!")
-  ack("Hi from The Jira and Slack Integration bot! When you are ready, just send me a DM in a thread and I will help you create a Jira ticket.")
+  ack("Hi from The Jira and Slack Integration bot! Use reactions to have me create (:eyes) or complete (:white_check_mark) a ticket.")
 
 # This is the event we want to use to create a ticket
 @app.event("reaction_added")
@@ -25,46 +25,38 @@ def handle_reaction_added(body, say, logger):
   logger.info("I see a reaction_added event!")
   logger.info(body)
 
-  # Find who called the bot
+  # Get the info we will need for Jira
   assignee = body["event"]["user"]
+  reaction = body["event"]["reaction"]
+  channel = body["event"]["item"]["channel"]
+  ts = body["event"]["item"]["ts"]
+  reporter = app.client.conversations_replies(
+    channel=channel,
+    ts=ts
+  )["messages"][0]["user"]
+  description = app.client.conversations_replies(
+    channel=channel,
+    ts=ts
+  )["messages"][0]["text"]
+  
+  # TODO: Don't allow this to be run from within a thread
 
-  # Say something like "Creating your ticket assignment to <assignee>!"
-  say(f"Hey there <@{assignee}>! I see you added a reaction. I will create a ticket for you!", thread_ts=body["event"]["item"]["ts"])
+  # TODO: Check if the user is a team member in a separate JSON file
+  
+  # Create a ticket if the reaction is :eyes:
+  if reaction == "eyes":
+    jira_authorization=os.environ.get("JIRA_AUTH")
+    say(f"Hey there <@{assignee}>! I will create a ticket for <@{reporter}> with a description of {description}!", thread_ts=body["event"]["item"]["ts"])
 
-# This is the current event we are using to create a ticket
+  # Complete the ticket if the reaction is :white_check_mark:
+  elif reaction =="white_check_mark":
+    say(f"Hey there <@{assignee}>! I will mark this ticket as done!", thread_ts=body["event"]["item"]["ts"])
+
+# This will now become a help message as we are using reactions now
 @app.event("app_mention")
-def event_test(body, say, logger):
+def event_test(say, logger):
   logger.info("I see a mention!")
-  logger.info(body)
-  # Check if this mention is in a thread
-  if "thread_ts" in body["event"]:
-    # Find who called the bot
-    assignee = body["event"]["user"]
-
-    # Find the original message sender
-    reporter = app.client.conversations_replies(
-      channel=body["event"]["channel"],
-      ts=body["event"]["thread_ts"]
-    )["messages"][0]["user"]
-    
-    description = app.client.conversations_replies(
-      channel=body["event"]["channel"],
-      ts=body["event"]["thread_ts"]
-    )["messages"][0]["text"]
-    
-    # TODO: Check what other info we can grab from the message
-    parent_message_meta = app.client.conversations_replies(
-      channel=body["event"]["channel"],
-      ts=body["event"]["thread_ts"]
-    )["messages"][0]
-    
-    # Just print the testing message
-    say(f"Here is the message: {parent_message_meta}", thread_ts=body["event"]["ts"])
-
-    # Say something like "Creating your ticket assignment to <assignee>!"
-    say(f"Creating your ticket <@{assignee}> for reporter <@{reporter}> with description {description}!", thread_ts=body["event"]["ts"])
-  else:
-    say("Sadly, I can only create tickets in a thread. Please send me a DM in a thread.")
+  say("Hi there! I am The Jira and Slack Integration bot! Use reactions to have me create (:eyes) or complete (:white_check_mark) a ticket.")
 
 def triage(req: Request):
   app = App(
