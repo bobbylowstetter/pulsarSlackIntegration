@@ -75,18 +75,32 @@ def handle_reaction_added(body, say, logger):
   # TODO: Don't allow this to be run from within a thread
   
   #region :eyes: Reaction Functionality (Create a ticket)
-  if reaction == "eyes":
-    say(f"Hey there <@{assignee}>! I will create a ticket for <@{reporter}> with a description of {description}!", thread_ts=body["event"]["item"]["ts"])
-    
+  if reaction == "eyes":    
     # Confirmed that reporter_email and assignee_email is good. Using a dummy for testing.
     # TODO: Remove the dummy 
-    reporter_email = "mreynolds@jackhenry.com"
-    assignee_email = "pheintz@jackhenry.com"
-    jiraReporterID = findJiraUserAccountID(reporter_email)
-    jiraAssigneeID = findJiraUserAccountID(assignee_email)
+    reporter_email = "blowstetter@jackhenry.com"
+    assignee_email = "blowstetter@jackhenry.com"
+      
+    # The Assignee should always be in Jira, so we will error if they are not found
+    try:
+      jiraAssigneeID = findJiraUserAccountID(assignee_email)
+    except:
+      say(f"Could not find <@{assignee}> in Jira. Please make sure your email is in Jira.", thread_ts=body["event"]["item"]["ts"])
+      return
     
+    try:
+      jiraReporterID = findJiraUserAccountID(reporter_email)
+    except:
+      # If the reporter is not found in Jira, we will the assignee to create the ticket
+      say(f"Could not find <@{reporter}> in Jira. Using <@{assignee}> as Reporter.", thread_ts=body["event"]["item"]["ts"])
+      jiraReporterID = jiraAssigneeID
+      
     # TODO: Handle is the user is not found in Jira (only matters if they are not the assignee)
-    createTicket(url, description, jiraReporterID, jiraAssigneeID)
+    try:
+      ticketURL = createTicket(url, description, jiraReporterID, jiraAssigneeID)
+      say(f"Ticket created: {ticketURL}.", thread_ts=body["event"]["item"]["ts"])
+    except:
+      say("There was an error creating the ticket.", thread_ts=body["event"]["item"]["ts"])
     #endregion
   
   #region :white_check_mark: Reaction Functionality (Complete a ticket)
@@ -111,7 +125,6 @@ def triage(req: Request):
 #endregion
 
 #region Jira API Functions
-# Jira API functions
 def findJiraUserAccountID(email):
   # This is the Jira API for finding a user's account ID
   conn = http.client.HTTPSConnection("banno-jha.atlassian.net")
@@ -167,5 +180,11 @@ def createTicket(url, description, jiraReporterID, jiraAssigneeID):
   res = conn.getresponse()
   data = res.read()
   print(data.decode("utf-8"))
+  
+  # Get the ticket number
+  ticketNumber = json.loads(data.decode("utf-8"))["key"]
+  
+  # Return the URL of the ticket
+  return f"https://banno-jha.atlassian.net/browse/{ticketNumber}"
 
 #endregion
