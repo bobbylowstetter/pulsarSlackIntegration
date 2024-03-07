@@ -17,6 +17,9 @@ app = App(process_before_response=True)
 
 handler = SlackRequestHandler(app)
 
+# Some shared variables
+jira_authorization=os.environ.get("JIRA_AUTH")
+
 # This is the slash command. We are not really using it, but it will notify them on how to use the bot.
 @app.command("/triage")
 def hello_command(ack, logger):
@@ -24,6 +27,16 @@ def hello_command(ack, logger):
   ack("Hi from The Jira and Slack Integration bot! Use reactions to have me create (:eyes) or complete (:white_check_mark) a ticket.")
 
 # This is the event we want to use to create a ticket
+# @app.event("reaction_removed")
+# def handle_reaction_removed(body, say, logger):
+#   logger.info("I see a reaction_removed event!")
+#   logger.info(body)
+#   reaction = body["event"]["reaction"]
+#   if reaction == "eyes":
+#     say("You removed the :eyes: reaction. I will delete that ticket.")
+#   if reaction == "white_check_mark":
+#     say("You removed the :white_check_mark: reaction. I will reopen that ticket.")
+
 @app.event("reaction_added")
 def handle_reaction_added(body, say, logger):
   logger.info("I see a reaction_added event!")
@@ -34,10 +47,17 @@ def handle_reaction_added(body, say, logger):
   reaction = body["event"]["reaction"]
   channel = body["event"]["item"]["channel"]
   ts = body["event"]["item"]["ts"]
+  # Convert ts to the URL
+  url = f"https://banno.slack.com/archives/{channel}/p{ts.replace('.', '')}"
   reporter = app.client.conversations_replies(
     channel=channel,
     ts=ts
   )["messages"][0]["user"]
+  
+  reporter_email = app.client.users_info(
+      user=reporter
+  )["user"]["profile"]["email"]
+  
   description = app.client.conversations_replies(
     channel=channel,
     ts=ts
@@ -50,7 +70,57 @@ def handle_reaction_added(body, say, logger):
   # Create a ticket if the reaction is :eyes:
   if reaction == "eyes":
     say(f"Hey there <@{assignee}>! I will create a ticket for <@{reporter}> with a description of {description}!", thread_ts=body["event"]["item"]["ts"])
-    create_ticket()
+    
+    # TODO: Need to create logic that finds a users id based on their name in Slack
+    # Confirmed that reporter_email is good. Using a dummy for testing.
+    reporter_email = "mreynolds@jackhenry.com"
+    jiraAccountID = findJiraUserAccountID(reporter_email)
+    
+    # TODO: Handle is the user is not found in Jira (only matters if they are not the assignee)
+    
+    # This is the Jira API for creating a ticket
+    # conn = http.client.HTTPSConnection("banno-jha.atlassian.net")
+    # payload = json.dumps({
+    #   "fields": {
+    #     "project": {
+    #       "key": "PULS"
+    #     },
+    #     "summary": url,
+    #     "description": {
+    #       "type": "doc",
+    #       "version": 1,
+    #       "content": [
+    #         {
+    #           "type": "paragraph",
+    #           "content": [
+    #             {
+    #               "type": "text",
+    #               "text": description
+    #             }
+    #           ]
+    #         }
+    #       ]
+    #     },
+    #     "issuetype": {
+    #       "name": "Task"
+    #     },
+    #     "reporter": {
+    #       "id": jiraAccountID
+    #     },
+    #     "assignee": {
+    #       "accountId": "62fbac730bb03d8a6cb28321"
+    #     }
+    #   }
+    # })
+    # headers = {
+    #   'Content-Type': 'application/json',
+    #   'Authorization': 'Basic ' + jira_authorization
+    # }
+    # conn.request("POST", "/rest/api/3/issue", payload, headers)
+    # res = conn.getresponse()
+    # data = res.read()
+    # print(data.decode("utf-8"))
+
 
   # Complete the ticket if the reaction is :white_check_mark:
   elif reaction =="white_check_mark":
@@ -69,47 +139,19 @@ def triage(req: Request):
   )
   return handler.handle(req)
 
-# Some functions for Working with Jira
-def create_ticket():
-  jira_authorization=os.environ.get("JIRA_AUTH")
+# Jira API functions
+def findJiraUserAccountID(email):
+  # This is the Jira API for finding a user's account ID
   conn = http.client.HTTPSConnection("banno-jha.atlassian.net")
-  payload = json.dumps({
-    "fields": {
-      "project": {
-        "key": "PULS"
-      },
-      "summary": "REST Test",
-      "description": {
-        "type": "doc",
-        "version": 1,
-        "content": [
-          {
-            "type": "paragraph",
-            "content": [
-              {
-                "type": "text",
-                "text": "this is a description of the issue"
-              }
-            ]
-          }
-        ]
-      },
-      "issuetype": {
-        "name": "Task"
-      },
-      "assignee": {
-        "accountId": "62fbac730bb03d8a6cb28321"
-      }
-    }
-  })
+  payload = ''
   headers = {
-    'Content-Type': 'application/json',
     'Authorization': 'Basic ' + jira_authorization
   }
-  conn.request("POST", "/rest/api/3/issue", payload, headers)
+  conn.request("GET", f"/rest/api/3/user/search?query=" + email, payload, headers)
   res = conn.getresponse()
   data = res.read()
-  print(data.decode("utf-8"))
+  # Parse the JSON and return the account ID
+  return json.loads(data.decode("utf-8"))[0]["accountId"]
 
 # Step1: Create a new Slack App: https://api.slack.com/apps
 # Bot Token Scopes: app_mentions:read,chat:write,commands

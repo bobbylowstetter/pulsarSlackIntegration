@@ -1,7 +1,7 @@
-# pulsarTriageTools
-Tools used for enhancing Pulsar Triage
+# Slack to Jira Integration
 
-# URLs
+
+## URLs
 https://us-east1-bobolopocus.cloudfunctions.net/triage
 
 ## Google Cloud Initialization
@@ -24,3 +24,12 @@ The following Secrets must be created at https://console.cloud.google.com/securi
 - JIRA_AUTH : Authentication token used for authenticating with Jira. Found https://support.atlassian.com/atlassian-account/docs/manage-api-tokens-for-your-atlassian-account/
 - SLACK_BOT_TOKEN : Token used for the slack bot found at https://api.slack.com/
 - SLACK_SIGNING_SECRET : Signing secret found at https://api.slack.com/
+
+## Bot creation details:
+You will need to adjust the following things at https://api.slack.com for your app:
+- Event Subscriptions (Subscribe to Bot Events)
+  - app_mention (app_mentions:read)
+  - reaction_added (reactions:read)
+  - reaction_removed (reactions:read)
+
+Anytime you make a change, go ahead and reinstall the app to the workspace!
