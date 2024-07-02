@@ -3,7 +3,7 @@ import os
 import logging
 from slack_bolt import App
 
-# Jira API stuff for Future Features
+# Python http.client libraries
 import http.client
 import json
 
@@ -21,9 +21,11 @@ handler = SlackRequestHandler(app)
 
 #region Shared Variables
 # ServiceNow API stuff
+jhnowURL = "jhnowdev.service-now.com"
+jhnowAuthorization = os.environ.get("JHNOWDEV_AUTH") # This is found in GCP Secrets Manager
 
 # Jira API stuff for Future Features
-jira_authorization=os.environ.get("JIRA_AUTH")
+jira_authorization=os.environ.get("JIRA_AUTH") # This is found in GCP Secrets Manager
 #endregion
 
 #region Slash Command (/triage) Functionality
@@ -71,7 +73,23 @@ def handle_reaction_added(body, say, logger):
   if reaction == "jh":
     
     # TODO: Create a function to create a ticket (Needed Feature)
-    say(f"Creating a ticket for {assignee_email}...")
+    conn = http.client.HTTPSConnection(jhnowURL)
+    payload = json.dumps({
+      "short_description": description,
+      "description": f"Thread: {url} \nTask created by {reporter_email} from Slack. \nAssignee: {assignee_email} \nDescription: {description}",
+      "assignment_group": "ae690fb24747f5d4629fd4f4126d434a", # Cloud Infrastructure - Pulsar Assinment Group sys_id in ServiceNow dev instance
+      "active": True
+    })
+    headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Basic ' + jhnowAuthorization
+    }
+    conn.request("POST", "/api/now/table/sc_task", payload, headers)
+    res = conn.getresponse()
+    data = res.read()
+    say(f"Ticket created for {assignee_email}! {data}", thread_ts=body["event"]["item"]["ts"])
+
+    
     #endregion
   
   #region :white_check_mark: Reaction Functionality (Complete a ticket)
