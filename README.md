@@ -9,7 +9,7 @@ Use `gcloud init` to login to GCP. For this current setup, we are using the `bob
 
 ## Deploying
 Each function has its own deploy. First navigate to the `triage` folder. Then run the following command to deploy changes:
-```gcloud functions deploy triage --runtime python310 --trigger-http --allow-unauthenticated --entry-point=triage --gen2 --region us-east1 --set-secrets "JIRA_AUTH=JIRA_AUTH:latest","SLACK_BOT_TOKEN=SLACK_BOT_TOKEN:latest","SLACK_SIGNING_SECRET=SLACK_SIGNING_SECRET:latest"```
+```gcloud functions deploy triage --runtime python310 --trigger-http --allow-unauthenticated --entry-point=triage --gen2 --region us-east1 --set-secrets "JIRA_AUTH=JIRA_AUTH:latest","SLACK_BOT_TOKEN=SLACK_BOT_TOKEN:latest","SLACK_SIGNING_SECRET=SLACK_SIGNING_SECRET:latest","JHNOWDEV_AUTH=JHNOWDEV_AUTH:latest"```
 
 ## Deleting
 ```gcloud functions delete --region us-east1 {{def}}```
@@ -24,6 +24,7 @@ The following Secrets must be created at https://console.cloud.google.com/securi
 - JIRA_AUTH : Authentication token used for authenticating with Jira. Found https://support.atlassian.com/atlassian-account/docs/manage-api-tokens-for-your-atlassian-account/
 - SLACK_BOT_TOKEN : Token used for the slack bot found at https://api.slack.com/
 - SLACK_SIGNING_SECRET : Signing secret found at https://api.slack.com/
+- JHNOWDEV_AUTH : Authentication token used for authenticating with Servicenow. Found in Postman code for our Python HTTP.CLIENT code.
 
 ## Bot creation details:
 You will need to adjust the following things at https://api.slack.com for your app:
