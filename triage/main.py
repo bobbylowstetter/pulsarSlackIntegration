@@ -72,7 +72,24 @@ def handle_reaction_added(body, say, logger):
   #region :jh: Reaction Functionality (Create a ticket)
   if reaction == "jh":
     
-    # TODO: Create a function to create a ticket (Needed Feature)
+    # See if the ticket already exists. First we need to check the slack conversation for any messages stating Sys_id is:
+    # Fetch thread messages
+    response = app.client.conversations_replies(
+        channel=channel,
+        ts=body["event"]["item"]["ts"]
+    )
+
+    # Check if the request was successful and if we have messages
+    if response["ok"] and "messages" in response:
+        thread_messages = response["messages"]
+        
+        # Loop through the messages to find the sys_id
+        for message in thread_messages:
+          if "Sys_id" in message["text"]:
+            say("This thread already has a ticket created. I will not create a duplicate.", thread_ts=body["event"]["item"]["ts"])
+            return
+    
+    #region Create Ticket in ServiceNow
     conn = http.client.HTTPSConnection(jhnowURL)
     payload = json.dumps({
       "short_description": description,
@@ -87,8 +104,9 @@ def handle_reaction_added(body, say, logger):
     conn.request("POST", "/api/now/table/sc_task", payload, headers)
     res = conn.getresponse()
     data = res.read()
-    say(f"Ticket created for {assignee_email}! {data}", thread_ts=body["event"]["item"]["ts"])
-
+    sys_id = json.loads(data.decode("utf-8"))["result"]["sys_id"]
+    say(f"Ticket created for {assignee_email}! Sys_id is: {sys_id}", thread_ts=body["event"]["item"]["ts"])
+    #endregion
     
     #endregion
   
